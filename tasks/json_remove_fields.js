@@ -35,20 +35,29 @@ module.exports = function(grunt) {
           dest = src;
       }
 
-      // getting fields to remove
-      var fields = this.data.fields;
+      // tracking which fields were removed
+      var fields = [];
+
+      var _ = require('lodash');
+
+      function deleteEmptyValues(test) {
+          for (var i in test) {
+              if (_.isEmpty(test[i])) {
+                  delete test[i];
+              } else if (_.isObject(test[i])) {
+                  deleteEmptyValues(test[i]);
+              }
+          }
+      }
 
       // read src file as JSON object
       var srcJSON = grunt.file.readJSON(src);
 
-      if (!Array.isArray(fields)) {
-          grunt.log.error('No fields array specified');
-          return false; // abort execution
-      }
+      deleteEmptyValues(srcJSON);
+      // run it twice, make it nice
+      deleteEmptyValues(srcJSON);
 
-      for (var i=0; i<fields.length; i++) {
-          delete srcJSON[fields[i]]; // deleting specified fields from JSON object
-      }
+      srcJSON = _.omitBy(srcJSON, _.isEmpty);
 
       // getting space option
       var space = this.data.space;
@@ -59,7 +68,7 @@ module.exports = function(grunt) {
 
       grunt.file.write(dest, JSON.stringify(srcJSON, null, space)); // serialize JSON to file again
 
-      grunt.log.writeln("Removed fields [" + fields + "] from " + src + " into " + dest);
+      grunt.log.writeln( src + " updated to remove all empty values.");
   });
 
 };
